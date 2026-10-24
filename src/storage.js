@@ -1,7 +1,7 @@
 import { schemas } from "../server/schema.js";
 export const browserEdition = import.meta.env?.VITE_STORAGE_MODE === "browser";
 let connection;
-function database() {
+export function database() {
   if (!connection)
     connection = new Promise((resolve, reject) => {
       const req = indexedDB.open("matcraft-personal-v1", 1);
@@ -9,13 +9,28 @@ function database() {
         req.result.createObjectStore("records", { keyPath: "id" });
         req.result.createObjectStore("media", { keyPath: "id" });
       };
-      req.onsuccess = () => resolve(req.result);
+      req.onsuccess = () => {
+        req.result.onversionchange = () => {
+          req.result.close();
+          connection = undefined;
+        };
+        resolve(req.result);
+      };
+      req.onblocked = () =>
+        reject(
+          new Error(
+            "Close other Matcraft tabs, then reload to finish opening your journal.",
+          ),
+        );
       req.onerror = () =>
         reject(
           new Error(
             "Browser storage is unavailable. Check private-browsing or site-storage settings.",
           ),
         );
+    }).catch((error) => {
+      connection = undefined;
+      throw error;
     });
   return connection;
 }

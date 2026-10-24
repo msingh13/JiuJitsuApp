@@ -2169,3 +2169,16 @@ footer span:last-child {
     transition: none !important;
   }
 }
+/* Keep backup controls comfortable on phones as well as desktop. */
+.backup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 16px 0;
+}
+.data-safety h3 {
+  margin-top: 24px;
+}
+.data-safety p {
+  line-height: 1.65;
+}

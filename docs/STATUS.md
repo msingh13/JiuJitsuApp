@@ -32,7 +32,7 @@ The final conversation describes 10 feature areas plus a voice orchestrator. Thi
 ## Known limits
 
 - No accounts or cross-device synchronization. The public Pages build stores records on each visitor’s browser. The optional Express server remains loopback-only.
-- Record removal is permanent after the second click; exported backups can be inspected but there is no in-app restore workflow yet.
+- Record removal is permanent after the second click unless a prior complete `.matcraft` backup is available. Settings includes complete backup download and transactional restore with media. JSON-only exports remain read-only reports.
 - Media detach removes record references, not the file; unused uploaded files remain on disk until a future cleanup workflow.
 - Browser timers use wall-clock deadlines while active; sleeping computers, suspended tabs and navigation away from the app can interrupt a sequence. The timer is not a competition officiating system.
 - Rule-based templates are not individualized exercise prescriptions. The quiz is educational, not a predictor of real match success.

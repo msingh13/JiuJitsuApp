@@ -54,6 +54,8 @@ import {
 } from "./domain";
 import "./style.css";
 import { request, browserEdition, mediaUrl, exportRecords } from "./storage";
+import { protectStorage } from "./backup.js";
+import DataSafety from "./DataSafety.jsx";
 const nav = [
   ["Overview", LayoutDashboard],
   ["Mat journal", CalendarDays],
@@ -266,6 +268,7 @@ function initial(kind) {
   return out;
 }
 function App() {
+  const [protection, setProtection] = useState("checking");
   const [data, setData] = useState(null),
     [page, setPage] = useState("Overview"),
     [modal, setModal] = useState(null),
@@ -284,6 +287,16 @@ function App() {
   }
   useEffect(() => {
     load();
+    if (browserEdition) protectStorage().then(setProtection);
+    const refresh = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
   }, []);
   useEffect(() => {
     if (toast) {
@@ -1109,11 +1122,18 @@ function App() {
                   </div>
                 </div>
               </section>
+              {browserEdition && (
+                <DataSafety
+                  protection={protection}
+                  setProtection={setProtection}
+                  reload={load}
+                />
+              )}
               <section className="panel">
                 <h2>Your data stays with you</h2>
                 <p>
                   {browserEdition
-                    ? "Records and media stay in this browser on this device. No account or server receives your training records. Clearing site data removes them; export important records regularly. Different devices have separate journals."
+                    ? "You can also export a readable JSON copy of your records. For recovery, use the complete backup above instead."
                     : "Records and uploaded media are saved in this app’s local database on this computer. This edition is single-user and does not provide cloud sync or remote phone access."}
                 </p>
                 <button

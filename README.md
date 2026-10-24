@@ -28,9 +28,11 @@ Live address: https://msingh13.github.io/JiuJitsuApp/
 npm run build:pages
 ```
 
-This produces `dist-pages/` with `/JiuJitsuApp/` asset paths. Publish those static files under the `JiuJitsuApp/` directory of the portfolio Pages repository. The browser edition uses IndexedDB for records and photo/video blobs, with the same validation rules as the local API. It never calls the Express server. Each browser/device has its own journal. Clearing site data removes it; JSON export preserves record data but not media files. Keep original media files separately. There is currently no restore/import or cloud sync.
+This produces `dist-pages/` with `/JiuJitsuApp/` asset paths. GitHub Actions publishes the tested build directly from this repository to GitHub Pages. The browser edition uses IndexedDB for records and photo/video blobs, with the same validation rules as the local API. It never calls the Express server. Each browser/device has its own journal. Closing and reopening the browser and deploying app updates preserve records. The app requests persistent storage when supported; the browser can decline. Explicitly clearing site data, deleting a browser profile, or ending a private session can still remove everything. People sharing a browser profile share its journal. There are no accounts or cloud sync.
 
-The initial live bundle is published from `msingh13/msingh13.github.io` so it shares the portfolio's existing deployment setup. The application source remains in this repository. Rebuild and republish `dist-pages/` after source changes.
+Settings → Download complete backup saves a `.matcraft` file containing records and the actual photo/video files. Restore backup validates the entire archive and imports it atomically. Existing records and the current profile are preserved; missing entries are restored. Keep backup files private. The separate JSON export is human-readable but cannot restore media.
+
+The portfolio links to this project’s Pages URL. `.github/workflows/pages.yml` automatically installs dependencies, runs tests, builds and deploys on pushes to `codex/matcraft-personal-edition` or `main`. Failed tests/builds stop publication. No personal records enter GitHub or the build artifacts. The feature branch remains the release source while PR #1 is a draft; after merging, use `main` and remove the feature branch trigger. Repository Settings → Pages must use GitHub Actions (configured). No cross-repository token is needed.
 
 ## Current release: personal edition
 

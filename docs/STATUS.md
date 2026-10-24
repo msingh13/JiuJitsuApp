@@ -2,7 +2,7 @@
 
 Source brief: https://gemini.google.com/share/d8c3c234de20
 
-The final conversation describes 10 feature areas plus a voice orchestrator. This repository implements an initial local personal edition. It is not the completed cloud/mobile product, and no third-party integrations are simulated as live.
+The final conversation describes 10 feature areas plus a voice orchestrator. This repository implements an initial personal edition with a GitHub Pages browser build and an optional local server. It is not the completed cloud/mobile product, and no third-party integrations are simulated as live.
 
 | Module | Working in v0.1 | Remaining |
 |---|---|---|
@@ -31,7 +31,7 @@ The final conversation describes 10 feature areas plus a voice orchestrator. Thi
 
 ## Known limits
 
-- Single local user, no authentication, no cross-device synchronization, no public deployment.
+- No accounts or cross-device synchronization. The public Pages build stores records on each visitor’s browser. The optional Express server remains loopback-only.
 - Record removal is permanent after the second click; exported backups can be inspected but there is no in-app restore workflow yet.
 - Media detach removes record references, not the file; unused uploaded files remain on disk until a future cleanup workflow.
 - Browser timers use wall-clock deadlines while active; sleeping computers, suspended tabs and navigation away from the app can interrupt a sequence. The timer is not a competition officiating system.

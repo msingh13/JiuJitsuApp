@@ -20,7 +20,19 @@ npm start
 
 Then open http://127.0.0.1:3001.
 
-## Current release: local personal edition
+## GitHub Pages edition
+
+Live address: https://msingh13.github.io/JiuJitsuApp/
+
+```sh
+npm run build:pages
+```
+
+This produces `dist-pages/` with `/JiuJitsuApp/` asset paths. Publish those static files under the `JiuJitsuApp/` directory of the portfolio Pages repository. The browser edition uses IndexedDB for records and photo/video blobs, with the same validation rules as the local API. It never calls the Express server. Each browser/device has its own journal. Clearing site data removes it; JSON export preserves record data but not media files. Keep original media files separately. There is currently no restore/import or cloud sync.
+
+The initial live bundle is published from `msingh13/msingh13.github.io` so it shares the portfolio's existing deployment setup. The application source remains in this repository. Rebuild and republish `dist-pages/` after source changes.
+
+## Current release: personal edition
 
 - Mat journal: Gi/No-Gi sessions, class and rolling minutes, focus, notes, ratings, calendar and week/month/year totals.
 - Technique library: 21 categorized starter techniques, search/filter, personal notes, mistakes, key details, difficulty, understanding, favorites, video links, media attachments.
@@ -39,7 +51,7 @@ Data is stored in `.data/matcraft.sqlite`; media lives in `.data/uploads`. Both 
 
 ### Scope and access
 
-This release binds to loopback and rejects remote Host headers and cross-origin web requests. It has **no multi-user authentication** and must not be exposed publicly or behind a public reverse proxy. The layout supports phone-sized screens, but cross-device access and native mobile builds are future work. A local process with access to this computer can read the database. Do not deploy this edition as a public service.
+This release binds to loopback and rejects remote Host headers and cross-origin web requests. It has **no multi-user authentication** and must not be exposed publicly or behind a public reverse proxy. The GitHub Pages edition works directly in phone and desktop browsers with separate data per browser. Cross-device synchronization and native mobile builds are future work. A local process with access to this computer can read the database. Do not deploy this edition as a public service.
 
 The starter catalog uses explicitly labeled YouTube searches, not an exhaustive or curated video index. No live academy curriculum is fetched. Belt promotions are instructor decisions; no promotion prediction is made. Nutrition targets are user-entered; there are no automatic calorie-burn or weight-cut prescriptions. Workout generators are editable templates rather than personalized AI coaching. Optional browser dictation may send audio to the browser vendor’s speech service. Google Fonts are fetched for typography, with local fallbacks.
 
@@ -57,6 +69,7 @@ GitHub Actions runs both on pushes and pull requests. Database tests use an in-m
 ## Layout
 
 - `src/main.jsx`: UI and forms
+- `src/storage.js`: browser IndexedDB and local API storage adapters
 - `src/domain.js`: date filtering, workout metrics, templates, starter catalog
 - `src/style.css`: responsive visual system
 - `server/schema.js`: record validation

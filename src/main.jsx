@@ -53,6 +53,7 @@ import {
   scenarios,
 } from "./domain";
 import "./style.css";
+import { request, browserEdition, mediaUrl, exportRecords } from "./storage";
 const nav = [
   ["Overview", LayoutDashboard],
   ["Mat journal", CalendarDays],
@@ -80,12 +81,6 @@ const descriptions = {
   "Training studio": "Keep the moments. Tell your training story.",
   Settings: "Make this space your own.",
 };
-async function request(path, options) {
-  const r = await fetch("/api" + path, options);
-  const data = await r.json();
-  if (!r.ok) throw new Error(data.error || "Something went wrong");
-  return data;
-}
 const field = (name, label, type = "text", options) => ({
   name,
   label,
@@ -336,7 +331,7 @@ function App() {
   if (!data)
     return (
       <div className="loading">
-        <img src="/icon.svg" width="50" />
+        <img src={import.meta.env.BASE_URL + "icon.svg"} width="50" />
         <h1>Matcraft</h1>
         <p>{error || "Opening your training space…"}</p>
         {error && <button onClick={load}>Try again</button>}
@@ -377,7 +372,7 @@ function App() {
             go("Overview");
           }}
         >
-          <img src="/icon.svg" />
+          <img src={import.meta.env.BASE_URL + "icon.svg"} />
           matcraft<span>®</span>
         </a>
         <div className="workspace-label">YOUR TRAINING SPACE</div>
@@ -396,7 +391,12 @@ function App() {
         </nav>
         <div className="sidebar-bottom">
           <div className="local-label">
-            <span /> Personal edition <small>Saved on this computer</small>
+            <span /> Personal edition{" "}
+            <small>
+              {browserEdition
+                ? "Saved in this browser"
+                : "Saved on this computer"}
+            </small>
           </div>
           <button className="profile" onClick={() => go("Settings")}>
             <span className="avatar">
@@ -1112,21 +1112,26 @@ function App() {
               <section className="panel">
                 <h2>Your data stays with you</h2>
                 <p>
-                  Records and uploaded media are saved in this app’s local
-                  database on this computer. This edition is single-user and
-                  does not provide cloud sync or remote phone access.
+                  {browserEdition
+                    ? "Records and media stay in this browser on this device. No account or server receives your training records. Clearing site data removes them; export important records regularly. Different devices have separate journals."
+                    : "Records and uploaded media are saved in this app’s local database on this computer. This edition is single-user and does not provide cloud sync or remote phone access."}
                 </p>
-                <a
+                <button
                   className="button"
-                  href="/api/export"
-                  download="matcraft-records.json"
+                  onClick={async () => {
+                    try {
+                      await exportRecords();
+                    } catch (e) {
+                      setToast(e.message);
+                    }
+                  }}
                 >
                   <ArrowDownToLine size={17} /> Export records
-                </a>
+                </button>
                 <p className="muted small">
-                  The JSON export includes records and media references, not
-                  uploaded files. Back up the entire .data directory for a
-                  complete backup.
+                  {browserEdition
+                    ? "The JSON export includes records and media references, not the uploaded files. Keep originals of your photos and videos outside the browser."
+                    : "The JSON export includes records and media references, not uploaded files. Back up the entire .data directory for a complete backup."}
                 </p>
               </section>
               <section className="panel">
@@ -1338,32 +1343,40 @@ function Media({ ids = [] }) {
   const [files, setFiles] = useState([]);
   useEffect(() => {
     let cancelled = false;
+    const urls = [];
     Promise.all(
-      ids.map((id) => request("/media/" + id).catch(() => null)),
-    ).then((v) => {
-      if (!cancelled) setFiles(v.filter(Boolean));
+      ids.map(async (id) => {
+        try {
+          const file = await request("/media/" + id);
+          const url = await mediaUrl(id);
+          if (url.startsWith("blob:")) urls.push(url);
+          return { ...file, url };
+        } catch {
+          return null;
+        }
+      }),
+    ).then((result) => {
+      if (!cancelled) setFiles(result.filter(Boolean));
+      else urls.forEach((u) => URL.revokeObjectURL(u));
     });
     return () => {
       cancelled = true;
+      urls.forEach((u) => URL.revokeObjectURL(u));
     };
   }, [ids.join(",")]);
   return (
     <div className="media-grid">
       {files.map((f) =>
         f.type.startsWith("video") ? (
-          <video
-            key={f.id}
-            controls
-            preload="metadata"
-            src={"/media/" + f.id}
-          />
+          <video key={f.id} controls preload="metadata" src={f.url} />
         ) : (
-          <img key={f.id} src={"/media/" + f.id} alt={f.name} />
+          <img key={f.id} src={f.url} alt={f.name} />
         ),
       )}
     </div>
   );
 }
+
 function Editor({ kind, record, close, save, remove }) {
   const [form, setForm] = useState(() =>
       kind === "schedule"

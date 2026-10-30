@@ -80,3 +80,7 @@ GitHub Actions runs both on pushes and pull requests. Database tests use an in-m
 - `tests/`: business-rule and persistence checks
 
 No external API keys are required for this edition. Never place provider secrets in browser code.
+
+## Google sign-in integration (pending activation)
+
+Google OAuth and private cross-device records/media are implemented behind two public configuration values. See [cloud setup](docs/CLOUD-SETUP.md) for the required Supabase project, SQL access policies, Google provider and GitHub Actions variables. Without those values the existing browser edition remains active. Live Google authentication and two-device checks must be completed after provisioning; local PostgreSQL access-policy tests are included.

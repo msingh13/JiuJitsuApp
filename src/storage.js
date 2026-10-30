@@ -1,4 +1,5 @@
 import { schemas } from "../server/schema.js";
+import { cloudActive, cloudRequest, cloudMedia } from "./cloud.js";
 export const browserEdition = import.meta.env?.VITE_STORAGE_MODE === "browser";
 let connection;
 export function database() {
@@ -63,6 +64,7 @@ async function records() {
   return out;
 }
 export async function request(path, options = {}) {
+  if (browserEdition && cloudActive()) return cloudRequest(path, options);
   if (!browserEdition) {
     const r = await fetch("/api" + path, options);
     const data = await r.json();
@@ -142,6 +144,8 @@ export async function browserRequest(path, options = {}) {
   return { ...row.data, id: row.id };
 }
 export async function mediaUrl(id) {
+  if (browserEdition && cloudActive())
+    return URL.createObjectURL((await cloudMedia(id)).blob);
   if (!browserEdition) return "/media/" + id;
   const row = await operate("media", "readonly", (s) => s.get(id));
   if (!row) throw new Error("Media not found");

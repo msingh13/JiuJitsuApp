@@ -56,6 +56,8 @@ import "./style.css";
 import { request, browserEdition, mediaUrl, exportRecords } from "./storage";
 import { protectStorage } from "./backup.js";
 import DataSafety from "./DataSafety.jsx";
+import { AccountGate, AccountPanel } from "./Account.jsx";
+import { cloudActive, signOut as cloudSignOut } from "./cloud.js";
 const nav = [
   ["Overview", LayoutDashboard],
   ["Mat journal", CalendarDays],
@@ -268,7 +270,7 @@ function initial(kind) {
   if (kind === "vlogs") out.media = [];
   return out;
 }
-function App() {
+function App({ user, showSignIn }) {
   const [protection, setProtection] = useState("checking");
   const [data, setData] = useState(null),
     [page, setPage] = useState("Overview"),
@@ -282,8 +284,10 @@ function App() {
     try {
       setData(await request("/records"));
       setError("");
+      return true;
     } catch (e) {
       setError(e.message);
+      return false;
     }
   }
   useEffect(() => {
@@ -322,7 +326,7 @@ function App() {
       },
     );
     await load();
-    setToast("Saved to your journal");
+    setToast(user ? "Saved to your cloud journal" : "Saved to your journal");
     return saved;
   }
   async function remove(kind, id) {
@@ -349,6 +353,13 @@ function App() {
         <h1>Matcraft</h1>
         <p>{error || "Opening your training space…"}</p>
         {error && <button onClick={load}>Try again</button>}
+        {user && (
+          <button
+            onClick={() => cloudSignOut().catch((e) => setError(e.message))}
+          >
+            Sign out
+          </button>
+        )}
       </div>
     );
   const latestBody = [...data.body].sort((a, b) =>
@@ -408,7 +419,9 @@ function App() {
             <span /> Personal edition{" "}
             <small>
               {browserEdition
-                ? "Saved in this browser"
+                ? user
+                  ? "Saved to your cloud account"
+                  : "Saved in this browser"
                 : "Saved on this computer"}
             </small>
           </div>
@@ -461,6 +474,14 @@ function App() {
           </button>
         </header>
         <div className="content">
+          {error && (
+            <div className="form-error" role="alert">
+              Could not refresh your journal: {error}{" "}
+              <button className="text-button" onClick={load}>
+                Try again
+              </button>
+            </div>
+          )}
           <div className="page-heading">
             <div>
               <div className="eyebrow">
@@ -1138,6 +1159,13 @@ function App() {
                 </div>
               </section>
               {browserEdition && (
+                <AccountPanel
+                  user={user}
+                  reload={load}
+                  showSignIn={showSignIn}
+                />
+              )}
+              {browserEdition && !user && (
                 <DataSafety
                   protection={protection}
                   setProtection={setProtection}
@@ -1147,9 +1175,11 @@ function App() {
               <section className="panel">
                 <h2>Your data stays with you</h2>
                 <p>
-                  {browserEdition
-                    ? "You can also export a readable JSON copy of your records. For recovery, use the complete backup above instead."
-                    : "Records and uploaded media are saved in this app’s local database on this computer. This edition is single-user and does not provide cloud sync or remote phone access."}
+                  {user
+                    ? "Export a readable copy of the records saved to your cloud account. Download individual recordings from their entries to keep extra copies."
+                    : browserEdition
+                      ? "You can also export a readable JSON copy of your records. For recovery, use the complete backup above instead."
+                      : "Records and uploaded media are saved in this app’s local database on this computer. This edition is single-user and does not provide cloud sync or remote phone access."}
                 </p>
                 <button
                   className="button"
@@ -1172,7 +1202,7 @@ function App() {
               <section className="panel">
                 <h2>Connections</h2>
                 {[
-                  "Cloud accounts & device sync",
+                  ...(!user ? ["Cloud accounts & device sync"] : []),
                   "AI model & voice understanding",
                   "Academy curriculum feed",
                   "Health / RENPHO scale sync",
@@ -1749,13 +1779,17 @@ function Editor({ kind, record, close, save, remove }) {
                 />
               </label>
               <p className="muted small">
-                JPG, PNG, WebP, MP4, WebM, MOV · up to 100 MB each
+                JPG, PNG, WebP, MP4, WebM, MOV · up to{" "}
+                {cloudActive() ? 50 : 100} MB each
               </p>
               {kind === "sessions" && (
                 <p className="muted small">
                   Ask your coach and training partners before recording. MP4 is
                   best for playback across devices; other formats depend on your
-                  browser. Complete backups include these files.
+                  browser.{" "}
+                  {cloudActive()
+                    ? "Saved recordings follow your account across devices."
+                    : "Complete backups include these files."}
                 </p>
               )}
               <Media
@@ -2737,4 +2771,12 @@ function Assistant({ close, edit, go, notify }) {
     </div>
   );
 }
-createRoot(document.getElementById("root")).render(<App />);
+createRoot(document.getElementById("root")).render(
+  browserEdition ? (
+    <AccountGate>
+      {(user, showSignIn) => <App user={user} showSignIn={showSignIn} />}
+    </AccountGate>
+  ) : (
+    <App />
+  ),
+);

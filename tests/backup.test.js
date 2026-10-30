@@ -127,3 +127,49 @@ test("browser storage protection reports granted, denied and unsupported states 
     else delete globalThis.navigator;
   }
 });
+
+test("class videos and move labels survive storage and complete backup restore; old sessions still validate", async () => {
+  const old = {
+    title: "Class",
+    date: "2026-10-29",
+    kind: "Gi",
+    duration: 60,
+    rolling: 15,
+    rating: 4,
+  };
+  const legacy = await browserRequest("/records/sessions", post(old));
+  assert.deepEqual(legacy.media, []);
+  assert.equal(legacy.moves, "");
+  const form = new FormData();
+  form.append(
+    "file",
+    new Blob(["class recording bytes"], { type: "video/mp4" }),
+    "class.mp4",
+  );
+  const clip = await browserRequest("/media", { method: "POST", body: form });
+  const session = await browserRequest(`/records/sessions/${legacy.id}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      ...old,
+      moves: "Knee-cut pass\nArmbar",
+      media: [clip.id],
+      mediaLabels: { [clip.id]: "Knee-cut pass — grip detail" },
+    }),
+  });
+  const backup = await createBackup();
+  await emptyTestDatabase();
+  await restoreBackup(backup);
+  const recovered = (await browserRequest("/records")).sessions.find(
+    (s) => s.id === session.id,
+  );
+  assert.deepEqual(recovered.media, [clip.id]);
+  assert.equal(recovered.mediaLabels[clip.id], "Knee-cut pass — grip detail");
+  assert.equal(recovered.moves, "Knee-cut pass\nArmbar");
+  assert.equal((await browserRequest(`/media/${clip.id}`)).type, "video/mp4");
+  await assert.rejects(
+    browserRequest(
+      "/records/sessions",
+      post({ ...old, media: Array(31).fill(clip.id) }),
+    ),
+  );
+});

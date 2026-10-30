@@ -99,6 +99,7 @@ const forms = {
     field("rolling", "Rolling time · minutes", "number"),
     field("rating", "Session rating", "select", [1, 2, 3, 4, 5]),
     field("focus", "Technique focus"),
+    field("moves", "Moves practiced · one per line", "textarea"),
     field("notes", "What went well? What will you work on?", "textarea"),
   ],
   techniques: [
@@ -716,6 +717,20 @@ function App() {
                           min rolling · {"★".repeat(s.rating)}
                         </p>
                         <p>{s.focus}</p>
+                        {s.moves && (
+                          <div className="session-moves">
+                            <strong>Moves practiced</strong>
+                            <p style={{ whiteSpace: "pre-line" }}>{s.moves}</p>
+                          </div>
+                        )}
+                        {!!s.media?.length && (
+                          <details className="session-recordings">
+                            <summary>
+                              Class recordings & photos · {s.media.length}
+                            </summary>
+                            <Media ids={s.media} labels={s.mediaLabels} />
+                          </details>
+                        )}
                         <p className="muted">{s.notes}</p>
                       </div>
                       <button
@@ -1359,7 +1374,7 @@ function Bars({ entries, unit, aggregate = "sum" }) {
     </div>
   );
 }
-function Media({ ids = [] }) {
+function Media({ ids = [], labels = {}, onLabel, onRemove }) {
   const [files, setFiles] = useState([]);
   useEffect(() => {
     let cancelled = false;
@@ -1372,7 +1387,7 @@ function Media({ ids = [] }) {
           if (url.startsWith("blob:")) urls.push(url);
           return { ...file, url };
         } catch {
-          return null;
+          return { id, missing: true };
         }
       }),
     ).then((result) => {
@@ -1386,13 +1401,55 @@ function Media({ ids = [] }) {
   }, [ids.join(",")]);
   return (
     <div className="media-grid">
-      {files.map((f) =>
-        f.type.startsWith("video") ? (
-          <video key={f.id} controls preload="metadata" src={f.url} />
-        ) : (
-          <img key={f.id} src={f.url} alt={f.name} />
-        ),
-      )}
+      {files.map((f) => (
+        <figure key={f.id} className="media-item">
+          {f.missing ? (
+            <p role="status">
+              Recording unavailable in this browser. Restore a complete backup
+              to recover it.
+            </p>
+          ) : f.type.startsWith("video") ? (
+            <video
+              controls
+              playsInline
+              preload="metadata"
+              src={f.url}
+              aria-label={labels[f.id] || f.name}
+            />
+          ) : (
+            <img src={f.url} alt={labels[f.id] || f.name} loading="lazy" />
+          )}
+          {onLabel ? (
+            <label>
+              Move / recording title
+              <input
+                value={labels[f.id] || ""}
+                maxLength={200}
+                placeholder="e.g. Knee-cut pass — coach's detail"
+                onChange={(e) => onLabel(f.id, e.target.value)}
+              />
+            </label>
+          ) : (
+            <figcaption>
+              {labels[f.id] || f.name || "Class recording"}
+            </figcaption>
+          )}
+          {!f.missing && (
+            <a href={f.url} download={f.name}>
+              Download original
+            </a>
+          )}
+          {onRemove && (
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => onRemove(f.id)}
+            >
+              Remove attachment
+            </button>
+          )}
+        </figure>
+      ))}
     </div>
   );
 }
@@ -1639,30 +1696,50 @@ function Editor({ kind, record, close, save, remove }) {
               Save as a favorite
             </label>
           )}
-          {["techniques", "vlogs"].includes(kind) && (
+          {["sessions", "techniques", "vlogs"].includes(kind) && (
             <div className="upload-area">
+              {kind === "sessions" && (
+                <>
+                  <h3>Class recordings</h3>
+                  <p>
+                    Attach a clip for each move, then name it below. Save this
+                    session to keep the recordings with this class date.
+                  </p>
+                </>
+              )}
               <label>
                 <Upload size={18} /> Attach photos or videos{" "}
                 <input
                   type="file"
+                  multiple
                   accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
                   disabled={busy}
                   onChange={async (e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
+                    const selected = Array.from(e.target.files || []);
+                    e.target.value = "";
+                    if (!selected.length) return;
+                    const limit = kind === "vlogs" ? 10 : 30;
+                    if ((form.media?.length || 0) + selected.length > limit) {
+                      setError(
+                        `Attach up to ${limit} photos or videos per entry.`,
+                      );
+                      return;
+                    }
                     setBusy(true);
                     setError("");
                     try {
-                      const body = new FormData();
-                      body.append("file", file);
-                      const result = await request("/media", {
-                        method: "POST",
-                        body,
-                      });
-                      setForm((f) => ({
-                        ...f,
-                        media: [...(f.media || []), result.id],
-                      }));
+                      for (const file of selected) {
+                        const body = new FormData();
+                        body.append("file", file);
+                        const result = await request("/media", {
+                          method: "POST",
+                          body,
+                        });
+                        setForm((f) => ({
+                          ...f,
+                          media: [...(f.media || []), result.id],
+                        }));
+                      }
                     } catch (e) {
                       setError(e.message);
                     } finally {
@@ -1674,7 +1751,40 @@ function Editor({ kind, record, close, save, remove }) {
               <p className="muted small">
                 JPG, PNG, WebP, MP4, WebM, MOV · up to 100 MB each
               </p>
-              <Media ids={form.media} />
+              {kind === "sessions" && (
+                <p className="muted small">
+                  Ask your coach and training partners before recording. MP4 is
+                  best for playback across devices; other formats depend on your
+                  browser. Complete backups include these files.
+                </p>
+              )}
+              <Media
+                ids={form.media}
+                labels={form.mediaLabels}
+                onLabel={
+                  kind === "sessions"
+                    ? (id, value) =>
+                        setForm((f) => ({
+                          ...f,
+                          mediaLabels: { ...f.mediaLabels, [id]: value },
+                        }))
+                    : undefined
+                }
+                onRemove={
+                  busy
+                    ? undefined
+                    : (id) =>
+                        setForm((f) => ({
+                          ...f,
+                          media: (f.media || []).filter((x) => x !== id),
+                          mediaLabels: Object.fromEntries(
+                            Object.entries(f.mediaLabels || {}).filter(
+                              ([key]) => key !== id,
+                            ),
+                          ),
+                        }))
+                }
+              />
               {form.media?.length > 0 && (
                 <button
                   type="button"

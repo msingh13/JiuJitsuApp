@@ -27,6 +27,11 @@ export const schemas = {
       rolling: number(1440),
       rating: z.number().int().min(1).max(5),
       focus: text.default(""),
+      moves: text.default(""),
+      media: z.array(z.string().uuid()).max(30).default([]),
+      mediaLabels: z
+        .record(z.string().uuid(), z.string().trim().max(200))
+        .default({}),
     })
     .refine(
       (v) => v.rolling <= v.duration,

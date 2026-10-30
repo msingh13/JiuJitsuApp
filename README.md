@@ -36,7 +36,7 @@ The portfolio links to this project’s Pages URL. `.github/workflows/pages.yml`
 
 ## Current release: personal edition
 
-- Mat journal: Gi/No-Gi sessions, class and rolling minutes, focus, notes, ratings, calendar and week/month/year totals.
+- Mat journal: Gi/No-Gi sessions, class and rolling minutes, focus, notes, ratings, calendar and week/month/year totals. Each class supports a moves-practiced list and up to 30 named photos/videos (100 MB each), inline playback, original downloads and individual detachment. Complete backups include class media.
 - Technique library: 21 categorized starter techniques, search/filter, personal notes, mistakes, key details, difficulty, understanding, favorites, video links, media attachments.
 - Strategy: saved branching game plans and three educational decision scenarios.
 - Round timer: rounds, rest, pause/resume, audio alerts, red/blue scoreboard, advantages and penalties. Timer remains active when navigating between app sections; browser suspension can delay alerts.

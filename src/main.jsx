@@ -722,55 +722,12 @@ function App({ user, showSignIn }) {
                   suffix="hours"
                 />
               </div>
-              <div className="panel">
-                <Calendar sessions={data.sessions} />
-              </div>
-              <section className="panel">
-                <h2>Sessions · {period.toLowerCase()}</h2>
-                {sessions.length ? (
-                  sessions.map((s) => (
-                    <div className="record" key={s.id}>
-                      <div>
-                        <span className="badge">{s.kind}</span>
-                        <h3>{s.title}</h3>
-                        <p>
-                          {prettyDate(s.date)} · {s.duration} min · {s.rolling}{" "}
-                          min rolling · {"★".repeat(s.rating)}
-                        </p>
-                        <p>{s.focus}</p>
-                        {s.moves && (
-                          <div className="session-moves">
-                            <strong>Moves practiced</strong>
-                            <p style={{ whiteSpace: "pre-line" }}>{s.moves}</p>
-                          </div>
-                        )}
-                        {!!s.media?.length && (
-                          <details className="session-recordings">
-                            <summary>
-                              Class recordings & photos · {s.media.length}
-                            </summary>
-                            <Media ids={s.media} labels={s.mediaLabels} />
-                          </details>
-                        )}
-                        <p className="muted">{s.notes}</p>
-                      </div>
-                      <button
-                        className="text-button"
-                        onClick={() => edit("sessions", s)}
-                      >
-                        Edit <ChevronRight size={14} />
-                      </button>
-                    </div>
-                  ))
-                ) : (
-                  <Empty
-                    title="Your next chapter starts on the mat"
-                    text="Log a class to start seeing your attendance and rolling time."
-                    action={() => edit("sessions")}
-                    label="Log a session"
-                  />
-                )}
-              </section>
+              <SessionJournal
+                sessions={sessions}
+                allSessions={data.sessions}
+                period={period}
+                edit={edit}
+              />
               <section className="panel">
                 <div className="section-heading">
                   <h2>Academy schedule</h2>
@@ -1404,6 +1361,205 @@ function Bars({ entries, unit, aggregate = "sum" }) {
     </div>
   );
 }
+function SessionJournal({ sessions, allSessions, period, edit }) {
+  const [query, setQuery] = useState("");
+  const [recordingsOnly, setRecordingsOnly] = useState(false);
+  const visible = [...sessions]
+    .filter(
+      (s) =>
+        (!recordingsOnly || s.media?.length) &&
+        [
+          s.title,
+          s.focus,
+          s.moves,
+          s.notes,
+          ...Object.values(s.mediaLabels || {}),
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(query.toLowerCase()),
+    )
+    .sort((a, b) => b.date.localeCompare(a.date));
+  return (
+    <div className="journal-space">
+      <section className="journal-banner">
+        <div>
+          <span className="eyebrow">THE DETAILS MAKE THE DIFFERENCE</span>
+          <h2>
+            Keep the lesson.
+            <br />
+            Build your game.
+          </h2>
+          <p>
+            Your class notes, moves and recordings. Together, right where you
+            left them.
+          </p>
+        </div>
+        <div className="journal-banner-mark" aria-hidden="true">
+          <span>TRAIN</span>
+          <span>REFLECT</span>
+          <span>REPEAT</span>
+        </div>
+      </section>
+      <details className="panel journal-calendar">
+        <summary>
+          <CalendarDays size={18} /> Training calendar{" "}
+          <span>{allSessions.length} logged classes</span>
+        </summary>
+        <Calendar sessions={allSessions} />
+      </details>
+      <section aria-label="Class journal">
+        <div className="journal-toolbar">
+          <div>
+            <span className="eyebrow">YOUR TIME ON THE MAT</span>
+            <h2>
+              Class journal{" "}
+              <span className="journal-count">{visible.length}</span>
+            </h2>
+          </div>
+          <button className="button" onClick={() => edit("sessions")}>
+            <Plus size={16} /> Log a class
+          </button>
+        </div>
+        <div className="journal-filters">
+          <label>
+            <Search size={18} />
+            <input
+              type="search"
+              aria-label="Search class journal"
+              placeholder="Find a move, class or detail…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </label>
+          <button
+            className={"journal-filter " + (recordingsOnly ? "selected" : "")}
+            aria-pressed={recordingsOnly}
+            onClick={() => setRecordingsOnly(!recordingsOnly)}
+          >
+            With recordings
+          </button>
+        </div>
+        <p className="journal-period">
+          Showing {period.toLowerCase()} · Newest classes first
+        </p>
+        <div className="session-stack">
+          {visible.map((s) => {
+            const date = new Date(s.date + "T12:00:00");
+            const moves = (s.moves || "")
+              .split("\n")
+              .map((x) => x.trim())
+              .filter(Boolean);
+            return (
+              <article className="session-card" key={s.id}>
+                <header className="session-card-header">
+                  <div className="session-date">
+                    <span>
+                      {date.toLocaleDateString("en", { month: "short" })}
+                    </span>
+                    <strong>{date.getDate()}</strong>
+                    <small>{date.getFullYear()}</small>
+                  </div>
+                  <div className="session-heading">
+                    <div className="session-tags">
+                      <span className="badge">{s.kind}</span>
+                      {s.program && <span>{s.program}</span>}
+                    </div>
+                    <h3>{s.title}</h3>
+                    <div className="session-meta">
+                      <span>
+                        <Timer size={14} />
+                        {s.duration} min class
+                      </span>
+                      <span>{s.rolling} min rolling</span>
+                      <span aria-label={`${s.rating} out of 5 stars`}>
+                        {"★".repeat(s.rating)}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    className="session-edit"
+                    aria-label={`Edit ${s.title}`}
+                    onClick={() => edit("sessions", s)}
+                  >
+                    Edit <ChevronRight size={15} />
+                  </button>
+                </header>
+                {s.focus && (
+                  <p className="session-focus">
+                    <span>CLASS FOCUS</span>
+                    {s.focus}
+                  </p>
+                )}
+                {moves.length > 0 && (
+                  <section className="session-move-list">
+                    <h4>Moves practiced</h4>
+                    <div>
+                      {moves.map((move, i) => (
+                        <span key={i}>
+                          <small>{String(i + 1).padStart(2, "0")}</small>
+                          {move}
+                        </span>
+                      ))}
+                    </div>
+                  </section>
+                )}
+                {s.notes && (
+                  <section className="session-note">
+                    <h4>From the mat</h4>
+                    <p>{s.notes}</p>
+                  </section>
+                )}
+                {s.media?.length ? (
+                  <details className="session-recordings">
+                    <summary>
+                      <span>
+                        Class recordings & photos <b>{s.media.length}</b>
+                      </span>
+                      <span className="recordings-hint">Open to review</span>
+                    </summary>
+                    <Media ids={s.media} labels={s.mediaLabels} />
+                  </details>
+                ) : (
+                  <button
+                    className="session-add-media"
+                    onClick={() => edit("sessions", s)}
+                  >
+                    <Upload size={16} /> Add a recording to remember the details{" "}
+                    <Plus size={16} />
+                  </button>
+                )}
+              </article>
+            );
+          })}
+        </div>
+        {!visible.length && (
+          <div className="panel">
+            {sessions.length ? (
+              <Empty
+                title="No matching classes"
+                text="Try a different move or clear the recording filter."
+                action={() => {
+                  setQuery("");
+                  setRecordingsOnly(false);
+                }}
+                label="Clear filters"
+              />
+            ) : (
+              <Empty
+                title="Your next chapter starts on the mat"
+                text="Log the class, name the moves, and attach a recording you can revisit."
+                action={() => edit("sessions")}
+                label="Log a class"
+              />
+            )}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
 function Media({ ids = [], labels = {}, onLabel, onRemove }) {
   const [files, setFiles] = useState([]);
   useEffect(() => {

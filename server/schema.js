@@ -15,6 +15,12 @@ const url = z.union([
   z.literal(""),
   z.url().refine((v) => /^https?:\/\//.test(v), "Use an http or https link"),
 ]);
+const attachments = {
+  media: z.array(z.string().uuid()).max(30).default([]),
+  mediaLabels: z
+    .record(z.string().uuid(), z.string().trim().max(200))
+    .default({}),
+};
 const base = { date, notes: text.default("") };
 export const schemas = {
   sessions: z
@@ -38,6 +44,7 @@ export const schemas = {
       "Rolling time cannot exceed class duration",
     ),
   techniques: z.object({
+    ...attachments,
     title,
     position: title,
     category: title,
@@ -54,6 +61,7 @@ export const schemas = {
     media: z.array(z.string().uuid()).max(30).default([]),
   }),
   workouts: z.object({
+    ...attachments,
     ...base,
     title,
     type: z.enum([
@@ -82,6 +90,8 @@ export const schemas = {
     favorite: z.boolean().default(false),
   }),
   meals: z.object({
+    ...attachments,
+    media: z.array(z.string().uuid()).max(5).default([]),
     ...base,
     title,
     meal: z.enum(["Breakfast", "Lunch", "Dinner", "Snack"]),

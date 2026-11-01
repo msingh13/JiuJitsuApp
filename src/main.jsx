@@ -56,6 +56,7 @@ import "./style.css";
 import { request, browserEdition, mediaUrl, exportRecords } from "./storage";
 import { protectStorage } from "./backup.js";
 import DataSafety from "./DataSafety.jsx";
+import VideoCapture from "./VideoCapture.jsx";
 import { AccountGate, AccountPanel } from "./Account.jsx";
 import { cloudActive, signOut as cloudSignOut } from "./cloud.js";
 const nav = [
@@ -836,6 +837,7 @@ function App({ user, showSignIn }) {
                       {prettyDate(w.date)} · {w.duration} min ·{" "}
                       {volume(w).toLocaleString()} kg total volume
                     </p>
+                    <Media ids={w.media} labels={w.mediaLabels} />
                     {w.exercises.map((e, i) => (
                       <p key={i}>
                         {e.name}: {e.sets} × {e.reps} at {e.weight} kg
@@ -1607,11 +1609,11 @@ function Media({ ids = [], labels = {}, onLabel, onRemove }) {
           )}
           {onLabel ? (
             <label>
-              Move / recording title
+              Photo / exercise / move title
               <input
                 value={labels[f.id] || ""}
                 maxLength={200}
-                placeholder="e.g. Knee-cut pass — coach's detail"
+                placeholder="Give this attachment a helpful name"
                 onChange={(e) => onLabel(f.id, e.target.value)}
               />
             </label>
@@ -1690,6 +1692,40 @@ function Editor({ kind, record, close, save, remove }) {
     };
   }, []);
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
+  async function attachFiles(selected) {
+    if (!selected.length) return;
+    const limit = kind === "vlogs" ? 10 : kind === "meals" ? 5 : 30;
+    if ((form.media?.length || 0) + selected.length > limit) {
+      setError(`Attach up to ${limit} files per entry.`);
+      return;
+    }
+    if (
+      kind === "meals" &&
+      selected.some(
+        (file) =>
+          !["image/jpeg", "image/png", "image/webp"].includes(file.type),
+      )
+    ) {
+      setError(
+        "Choose a JPG, PNG or WebP meal photo. Change your camera to a compatible format if needed.",
+      );
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      for (const file of selected) {
+        const body = new FormData();
+        body.append("file", file);
+        const result = await request("/media", { method: "POST", body });
+        setForm((f) => ({ ...f, media: [...(f.media || []), result.id] }));
+      }
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
   async function submit(e) {
     e.preventDefault();
     setBusy(true);
@@ -1882,7 +1918,9 @@ function Editor({ kind, record, close, save, remove }) {
               Save as a favorite
             </label>
           )}
-          {["sessions", "techniques", "vlogs"].includes(kind) && (
+          {["sessions", "techniques", "vlogs", "workouts", "meals"].includes(
+            kind,
+          ) && (
             <div className="upload-area">
               {kind === "sessions" && (
                 <>
@@ -1893,50 +1931,94 @@ function Editor({ kind, record, close, save, remove }) {
                   </p>
                 </>
               )}
+              {kind === "meals" ? (
+                <>
+                  <h3>Photo food journal</h3>
+                  <p>
+                    Snap your plate, then add the portion and nutrition details
+                    to this entry.
+                  </p>
+                  <label className="capture-button">
+                    Take a food photo
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      capture="environment"
+                      disabled={busy}
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        e.target.value = "";
+                        attachFiles(files);
+                      }}
+                    />
+                  </label>
+                  <div className="photo-ai-status">
+                    <strong>AI nutrition estimates · Setup pending</strong>
+                    <p>
+                      Save this meal to keep its photos. AI analysis is not
+                      connected yet; enter nutrients manually for now. Future
+                      estimates will be editable before saving.
+                    </p>
+                    <button type="button" disabled>
+                      Estimate nutrition from photo
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {kind === "workouts" && (
+                    <>
+                      <h3>Your exercise recordings</h3>
+                      <p>
+                        Record any exercise, even if it is not in the library.
+                        Name each clip below; save this workout as a template to
+                        reuse it.
+                      </p>
+                    </>
+                  )}
+                  {kind === "techniques" && (
+                    <>
+                      <h3>Your technique recordings</h3>
+                      <p>
+                        Add your own move to the library and keep a
+                        demonstration with it.
+                      </p>
+                    </>
+                  )}
+                  <VideoCapture
+                    disabled={busy}
+                    maxMB={cloudActive() ? 50 : 100}
+                    onCapture={(file) => attachFiles([file])}
+                    onBusy={setBusy}
+                  />
+                </>
+              )}
               <label>
-                <Upload size={18} /> Attach photos or videos{" "}
+                <Upload size={18} />{" "}
+                {kind === "meals"
+                  ? "Upload meal photos"
+                  : "Upload photos or videos"}{" "}
                 <input
                   type="file"
                   multiple
-                  accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
+                  accept={
+                    kind === "meals"
+                      ? "image/jpeg,image/png,image/webp"
+                      : "image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
+                  }
                   disabled={busy}
-                  onChange={async (e) => {
-                    const selected = Array.from(e.target.files || []);
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
                     e.target.value = "";
-                    if (!selected.length) return;
-                    const limit = kind === "vlogs" ? 10 : 30;
-                    if ((form.media?.length || 0) + selected.length > limit) {
-                      setError(
-                        `Attach up to ${limit} photos or videos per entry.`,
-                      );
-                      return;
-                    }
-                    setBusy(true);
-                    setError("");
-                    try {
-                      for (const file of selected) {
-                        const body = new FormData();
-                        body.append("file", file);
-                        const result = await request("/media", {
-                          method: "POST",
-                          body,
-                        });
-                        setForm((f) => ({
-                          ...f,
-                          media: [...(f.media || []), result.id],
-                        }));
-                      }
-                    } catch (e) {
-                      setError(e.message);
-                    } finally {
-                      setBusy(false);
-                    }
+                    attachFiles(files);
                   }}
                 />
               </label>
               <p className="muted small">
-                JPG, PNG, WebP, MP4, WebM, MOV · up to{" "}
-                {cloudActive() ? 50 : 100} MB each
+                {kind === "meals"
+                  ? "JPG, PNG, WebP"
+                  : "JPG, PNG, WebP, MP4, WebM, MOV"}{" "}
+                · up to {cloudActive() ? 50 : 100} MB each
               </p>
               {kind === "sessions" && (
                 <p className="muted small">
@@ -1952,7 +2034,7 @@ function Editor({ kind, record, close, save, remove }) {
                 ids={form.media}
                 labels={form.mediaLabels}
                 onLabel={
-                  kind === "sessions"
+                  kind !== "vlogs"
                     ? (id, value) =>
                         setForm((f) => ({
                           ...f,
@@ -2768,6 +2850,7 @@ function Nutrition({ data, profile, edit, save, remove }) {
                   {m.calories} kcal · P {m.protein}g · C {m.carbs}g · F {m.fat}g
                 </p>
                 <p className="muted">{m.notes}</p>
+                <Media ids={m.media} labels={m.mediaLabels} />
               </div>
               <button className="text-button" onClick={() => edit("meals", m)}>
                 Edit

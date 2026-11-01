@@ -2632,3 +2632,59 @@ footer span:last-child {
   color: #fff;
   border-color: #31578e;
 }
+
+.capture-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 16px 0;
+}
+.capture-button {
+  padding: 12px 16px;
+  border: 1px solid var(--line, #dce0ea);
+  border-radius: 12px;
+  background: #fff;
+  color: #293b72;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+}
+.capture-button input {
+  max-width: 100%;
+  font-size: 12px;
+}
+.photo-ai-status {
+  background: #eef2fa;
+  border: 1px solid #dbe3f3;
+  padding: 16px;
+  border-radius: 14px;
+  margin: 16px 0;
+}
+.photo-ai-status p {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.recording-preview {
+  padding: 12px;
+  background: #eef2fa;
+  border-radius: 14px;
+}
+.recording-preview video {
+  width: 100%;
+  max-height: 360px;
+  border-radius: 10px;
+  background: #151b30;
+}
+.video-capture {
+  margin-bottom: 20px;
+}
+@media (max-width: 600px) {
+  .capture-actions {
+    display: grid;
+  }
+  .capture-button {
+    min-width: 0;
+  }
+}

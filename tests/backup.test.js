@@ -173,3 +173,51 @@ test("class videos and move labels survive storage and complete backup restore; 
     ),
   );
 });
+
+test("workout videos and meal photos keep labels and files through complete backup", async () => {
+  await emptyTestDatabase();
+  for (const [kind, type, extra] of [
+    ["workouts", "video/webm", { type: "Strength", duration: 30 }],
+    [
+      "meals",
+      "image/jpeg",
+      {
+        meal: "Lunch",
+        calories: 500,
+        protein: 30,
+        carbs: 50,
+        fat: 20,
+        fiber: 5,
+        saturated: 2,
+        sodium: 400,
+      },
+    ],
+  ]) {
+    const upload = new FormData();
+    upload.append("file", new Blob(["test media"], { type }), "test-media");
+    const { id } = await browserRequest("/media", {
+      method: "POST",
+      body: upload,
+    });
+    await browserRequest(
+      `/records/${kind}`,
+      post({
+        title: "Personal entry",
+        date: "2026-11-01",
+        ...extra,
+        media: [id],
+        mediaLabels: { [id]: "My recording or plate" },
+      }),
+    );
+  }
+  const backup = await createBackup();
+  await emptyTestDatabase();
+  await restoreBackup(backup);
+  const records = await browserRequest("/records");
+  for (const kind of ["workouts", "meals"]) {
+    const row = records[kind][0];
+    assert.equal(row.mediaLabels[row.media[0]], "My recording or plate");
+    const media = await browserRequest(`/media/${row.media[0]}`);
+    assert.ok(media.type.startsWith(kind === "meals" ? "image/" : "video/"));
+  }
+});

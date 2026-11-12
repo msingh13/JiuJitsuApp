@@ -4,6 +4,8 @@ Status: integration prepared; not live until the project, Google provider and re
 
 ## Provision once
 
+Progress (2026-11-11): project `ovjjenrzslrrnhhxtxfd` resumed from inactivity. Private journal/media and nutrition quota migrations applied successfully; media bucket confirmed private. Google OAuth and deployment variables remain pending. Owner requires free plans only: no billing or upgrades.
+
 1. Sign into Supabase and create a project named Matcraft. Choose the Free plan to start. The owner sets and retains the database password; do not commit it or paste it into chat. Free projects have a 1 GB file-storage allowance, limited bandwidth, and may pause after inactivity; review current pricing before real client rollout. This app caps cloud uploads at 50 MB per file.
 2. In the SQL editor, run `supabase/migrations/202610290001_private_journals.sql` once against the new project. It creates per-user records, a private media bucket and access policies. It never exposes a public media bucket. Do not apply against existing unrelated tables with the same names.
 3. In Google Cloud, create/configure an OAuth web client for Matcraft, with basic openid/email/profile scopes only. Authorized JavaScript origin: `https://msingh13.github.io`. Authorized redirect URI: the exact callback shown in Supabase Authentication → Providers → Google, normally `https://PROJECT_REF.supabase.co/auth/v1/callback`.

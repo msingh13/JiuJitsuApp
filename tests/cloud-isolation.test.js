@@ -34,11 +34,42 @@ test("cloud policies isolate accounts, reject forged ownership, protect media an
         "utf8",
       ),
     );
+    await db.exec(
+      await readFile(
+        new URL(
+          "../supabase/migrations/202611110001_nutrition_quota.sql",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    );
     async function as(uid) {
       await db.exec(
         `reset role; set role authenticated; set request.jwt.claim.sub = '${uid}';`,
       );
     }
+    await as(alice);
+    for (let i = 0; i < 10; i++)
+      assert.equal(
+        (await db.query("select claim_nutrition_estimate() as allowed")).rows[0]
+          .allowed,
+        true,
+      );
+    assert.equal(
+      (await db.query("select claim_nutrition_estimate() as allowed")).rows[0]
+        .allowed,
+      false,
+    );
+    await assert.rejects(
+      db.query("delete from nutrition_estimate_usage"),
+      /permission denied/,
+    );
+    await as(bob);
+    assert.equal(
+      (await db.query("select claim_nutrition_estimate() as allowed")).rows[0]
+        .allowed,
+      true,
+    );
     await as(alice);
     await db.query(
       "insert into journal_records(user_id,id,kind,data) values($1,$2,'sessions',$3)",
@@ -124,6 +155,10 @@ test("cloud policies isolate accounts, reject forged ownership, protect media an
       "Updated",
     );
     await db.exec("reset role; set role anon;");
+    await assert.rejects(
+      db.query("select claim_nutrition_estimate()"),
+      /permission denied/,
+    );
     await assert.rejects(
       db.query("select * from journal_records"),
       /permission denied/,

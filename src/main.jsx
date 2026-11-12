@@ -57,6 +57,7 @@ import { request, browserEdition, mediaUrl, exportRecords } from "./storage";
 import { protectStorage } from "./backup.js";
 import DataSafety from "./DataSafety.jsx";
 import VideoCapture from "./VideoCapture.jsx";
+import FoodPhotoEstimate, { foodAIEnabled } from "./FoodPhotoEstimate.jsx";
 import { AccountGate, AccountPanel } from "./Account.jsx";
 import { cloudActive, signOut as cloudSignOut } from "./cloud.js";
 const nav = [
@@ -1952,17 +1953,20 @@ function Editor({ kind, record, close, save, remove }) {
                       }}
                     />
                   </label>
-                  <div className="photo-ai-status">
-                    <strong>AI nutrition estimates · Setup pending</strong>
-                    <p>
-                      Save this meal to keep its photos. AI analysis is not
-                      connected yet; enter nutrients manually for now. Future
-                      estimates will be editable before saving.
-                    </p>
-                    <button type="button" disabled>
-                      Estimate nutrition from photo
-                    </button>
-                  </div>
+                  <FoodPhotoEstimate
+                    media={form.media}
+                    labels={form.mediaLabels}
+                    disabled={busy}
+                    onBusy={setBusy}
+                    onApply={(estimate) =>
+                      setForm((f) => ({
+                        ...f,
+                        ...estimate.nutrients,
+                        notes:
+                          `${f.notes || ""}\nAI nutrition estimate (reviewed): ${estimate.assumptions}`.trim(),
+                      }))
+                    }
+                  />
                 </>
               ) : (
                 <>
@@ -2866,7 +2870,11 @@ function Nutrition({ data, profile, edit, save, remove }) {
       </section>
       <Notice
         title="Targets you control"
-        text="Calories and hydration use your saved daily goals. Automatic exercise adjustments, food-photo recognition and barcode lookup are not connected. Set goals in your profile; no nutrition score or weight-loss prediction is inferred from incomplete food logs."
+        text={
+          foodAIEnabled
+            ? "Calories and hydration use your saved daily goals. Photo estimates must be reviewed and applied in the meal editor. Automatic exercise adjustments and barcode lookup are not connected."
+            : "Food photos do not calculate calories yet. Enter nutrition in the meal editor to include it in your daily totals. Photo estimates are awaiting connection; exercise adjustments and barcode lookup are not connected."
+        }
       />
     </>
   );

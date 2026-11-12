@@ -27,6 +27,7 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_FOOD_PHOTO_AI: ${{ vars.VITE_FOOD_PHOTO_AI }}
       - uses: actions/upload-pages-artifact@v4
         with:
           path: dist-pages

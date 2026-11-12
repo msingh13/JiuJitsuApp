@@ -85,6 +85,7 @@ export function AccountGate({ children }) {
           them into your account. Cloud saving needs an internet connection.
         </p>
         {error && <p role="alert">{error}</p>}
+        <a href={`${import.meta.env.BASE_URL}privacy.html`} target="_blank" rel="noreferrer">How your journal data is used</a>
       </section>
     </main>
   );

@@ -4,6 +4,9 @@ import {
   Activity,
   ArrowDownToLine,
   ArrowLeft,
+  ArrowUp,
+  ArrowDown,
+  GripVertical,
   ArrowRight,
   BookOpen,
   CalendarDays,
@@ -58,6 +61,8 @@ import { protectStorage } from "./backup.js";
 import DataSafety from "./DataSafety.jsx";
 import VideoCapture from "./VideoCapture.jsx";
 import FoodPhotoEstimate, { foodAIEnabled } from "./FoodPhotoEstimate.jsx";
+import { moveExercise } from "./exercise-order.js";
+import RenphoImport from "./RenphoImport.jsx";
 import { AccountGate, AccountPanel } from "./Account.jsx";
 import { cloudActive, signOut as cloudSignOut } from "./cloud.js";
 const nav = [
@@ -914,16 +919,17 @@ function App({ user, showSignIn }) {
                       <span className="muted">· {prettyDate(b.date)}</span>
                     </h3>
                     <p>
-                      Body fat {b.fat}% · Muscle {b.muscle} kg · Visceral rating{" "}
-                      {b.visceral}
+                      Body fat {b.fat ?? "—"}% · Muscle {b.muscle ?? "—"} kg ·
+                      Visceral rating {b.visceral ?? "—"}
                     </p>
                     <p>{b.notes}</p>
                   </div>
                 ),
               )}
-              <Notice
-                title="Scale connection: not configured"
-                text="Manual measurements work now. Apple Health, Android Health Connect and RENPHO require a native mobile integration; this web edition does not sync with them."
+              <RenphoImport
+                existing={data.body}
+                onComplete={load}
+                user={user}
               />
             </>
           )}
@@ -1659,12 +1665,34 @@ function Editor({ kind, record, close, save, remove }) {
                 "Saturday",
               ][record.day] || record.day,
           }
-        : { ...record },
+        : {
+            ...record,
+            ...(kind === "workouts"
+              ? {
+                  exercises: (record.exercises || []).map((e) => ({
+                    ...e,
+                    _editKey: crypto.randomUUID(),
+                  })),
+                }
+              : {}),
+          },
     ),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [confirmDelete, setConfirmDelete] = useState(false);
   const ref = useRef();
+  const draggedExercise = useRef(null);
+  const [orderMessage, setOrderMessage] = useState("");
+  const [draggedKey, setDraggedKey] = useState(null);
+  function reorderExercise(from, to) {
+    setForm((f) => ({
+      ...f,
+      exercises: moveExercise(f.exercises || [], from, to),
+    }));
+    setOrderMessage(
+      `Exercise moved to position ${to + 1}. Save the workout to keep this order.`,
+    );
+  }
   useEffect(() => {
     const old = document.activeElement;
     ref.current?.focus();
@@ -1734,7 +1762,13 @@ function Editor({ kind, record, close, save, remove }) {
     try {
       const values = { ...form };
       for (const f of forms[kind])
-        if (f.type === "number") values[f.name] = Number(values[f.name]);
+        if (f.type === "number")
+          values[f.name] =
+            kind === "body" &&
+            ["fat", "muscle", "visceral"].includes(f.name) &&
+            (values[f.name] === "" || values[f.name] == null)
+              ? null
+              : Number(values[f.name]);
       if (kind === "sessions") values.rating = Number(values.rating);
       if (kind === "schedule")
         values.day = [
@@ -1841,6 +1875,7 @@ function Editor({ kind, record, close, save, remove }) {
                     set("exercises", [
                       ...(form.exercises || []),
                       {
+                        _editKey: crypto.randomUUID(),
                         name: "",
                         sets: 3,
                         reps: 8,
@@ -1854,8 +1889,88 @@ function Editor({ kind, record, close, save, remove }) {
                   <Plus size={16} /> Add exercise
                 </button>
               </div>
+              <p className="muted small">
+                Drag the grip to reorder, or use the arrows. Save to keep your
+                program order.
+              </p>
+              <p className="small" role="status">
+                {orderMessage}
+              </p>
               {(form.exercises || []).map((e, i) => (
-                <div className="exercise-row" key={i}>
+                <div
+                  className={`exercise-row ${draggedKey === e._editKey ? "is-dragging" : ""}`}
+                  key={e._editKey}
+                  data-exercise-index={i}
+                >
+                  <div className="exercise-order-controls">
+                    <span>Exercise {i + 1}</span>
+                    <button
+                      type="button"
+                      className="icon-button exercise-grip"
+                      aria-label={`Drag ${e.name || `exercise ${i + 1}`} to reorder; use arrow keys to move`}
+                      disabled={busy}
+                      onPointerDown={(ev) => {
+                        if (ev.button !== 0) return;
+                        draggedExercise.current = i;
+                        setDraggedKey(e._editKey);
+                        ev.currentTarget.setPointerCapture(ev.pointerId);
+                      }}
+                      onPointerMove={(ev) => {
+                        if (draggedExercise.current === null) return;
+                        const row = document
+                          .elementFromPoint(ev.clientX, ev.clientY)
+                          ?.closest("[data-exercise-index]");
+                        if (row && ref.current?.contains(row)) {
+                          const to = Number(row.dataset.exerciseIndex);
+                          if (to !== draggedExercise.current) {
+                            reorderExercise(draggedExercise.current, to);
+                            draggedExercise.current = to;
+                          }
+                        }
+                        const bounds = ref.current?.getBoundingClientRect();
+                        if (bounds && ev.clientY > bounds.bottom - 60)
+                          ref.current.scrollBy(0, 18);
+                        if (bounds && ev.clientY < bounds.top + 60)
+                          ref.current.scrollBy(0, -18);
+                      }}
+                      onPointerUp={() => {
+                        draggedExercise.current = null;
+                        setDraggedKey(null);
+                      }}
+                      onPointerCancel={() => {
+                        draggedExercise.current = null;
+                        setDraggedKey(null);
+                      }}
+                      onKeyDown={(ev) => {
+                        if (["ArrowUp", "ArrowDown"].includes(ev.key)) {
+                          ev.preventDefault();
+                          const to = i + (ev.key === "ArrowUp" ? -1 : 1);
+                          if (to >= 0 && to < form.exercises.length)
+                            reorderExercise(i, to);
+                        }
+                      }}
+                    >
+                      <GripVertical size={18} />
+                    </button>
+                    <button
+                      type="button"
+                      className="icon-button"
+                      aria-label={`Move exercise ${i + 1} up`}
+                      disabled={busy || i === 0}
+                      onClick={() => reorderExercise(i, i - 1)}
+                    >
+                      <ArrowUp size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      className="icon-button"
+                      aria-label={`Move exercise ${i + 1} down`}
+                      disabled={busy || i === form.exercises.length - 1}
+                      onClick={() => reorderExercise(i, i + 1)}
+                    >
+                      <ArrowDown size={16} />
+                    </button>
+                  </div>
                   {[
                     ["name", "Exercise"],
                     ["sets", "Sets"],

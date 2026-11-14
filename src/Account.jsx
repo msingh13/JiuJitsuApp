@@ -16,6 +16,24 @@ export function AccountGate({ children }) {
   const [pending, setPending] = useState(false);
   useEffect(() => {
     if (!cloudEnabled) return;
+    let active = true;
+    const returnedError =
+      new URLSearchParams(location.hash.slice(1)).get("error") ||
+      new URLSearchParams(location.search).get("error");
+    if (returnedError)
+      setError(
+        "Google sign-in was not completed. Try again or continue with this browser’s journal.",
+      );
+    const restoreFailure = () => {
+      if (!active) return;
+      setCloudUser(null);
+      setError(
+        "Could not restore sign-in. Check your connection and try again.",
+      );
+      setSession(null);
+    };
+    const onPageShow = () => setPending(false);
+    window.addEventListener("pageshow", onPageShow);
     const {
       data: { subscription },
     } = cloud.auth.onAuthStateChange((_event, next) => {
@@ -23,23 +41,33 @@ export function AccountGate({ children }) {
       setSession(next);
       setPending(false);
     });
-    cloud.auth.getSession().then(({ data, error }) => {
-      if (error) {
-        setError("Could not restore sign-in. Please try signing in again.");
-        setSession(null);
-      } else {
-        setCloudUser(data.session?.user);
-        setSession(data.session);
-      }
-    });
-    return () => subscription.unsubscribe();
+    cloud.auth
+      .getSession()
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error) {
+          restoreFailure();
+        } else {
+          setCloudUser(data.session?.user);
+          setSession(data.session);
+        }
+      })
+      .catch(restoreFailure);
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+      window.removeEventListener("pageshow", onPageShow);
+    };
   }, []);
   if (!cloudEnabled) return children(null);
-  if (session === undefined)
+  if (session === undefined && !guest)
     return (
       <main className="sign-in-screen">
         <h1>Opening your journal…</h1>
         <p>Checking your sign-in.</p>
+        <button className="text-button" onClick={() => setGuest(true)}>
+          Continue with this browser’s journal
+        </button>
       </main>
     );
   if (session || guest)
@@ -85,7 +113,13 @@ export function AccountGate({ children }) {
           them into your account. Cloud saving needs an internet connection.
         </p>
         {error && <p role="alert">{error}</p>}
-        <a href={`${import.meta.env.BASE_URL}privacy.html`} target="_blank" rel="noreferrer">How your journal data is used</a>
+        <a
+          href={`${import.meta.env.BASE_URL}privacy.html`}
+          target="_blank"
+          rel="noreferrer"
+        >
+          How your journal data is used
+        </a>
       </section>
     </main>
   );

@@ -107,9 +107,10 @@ export const schemas = {
   body: z.object({
     ...base,
     weight: number(500).min(1),
-    fat: number(100),
-    muscle: number(500),
-    visceral: number(100),
+    fat: number(100).nullable().default(null),
+    muscle: number(500).nullable().default(null),
+    visceral: number(100).nullable().default(null),
+    sourceId: z.string().max(1000).optional(),
   }),
   matches: z.object({
     ...base,

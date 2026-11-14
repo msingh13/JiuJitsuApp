@@ -12,9 +12,9 @@ The final conversation describes 10 feature areas plus a voice orchestrator. Thi
 | Competition | Match logs, outcomes, points, notes, footage links, win rate | Submission breakdowns, pass conversion event tracking, video annotations |
 | Partners / open mats | Private partner profiles, saved venues and external map search | Live map/provider integration, verified open-mat directory |
 | Game plans | Saved branching sequences, educational choice quiz | Draggable canvas, editable root, annual/monthly/week periodization, larger coach-reviewed scenario set |
-| Workouts / mobility | Editable templates, sets/reps/load/RPE/rest, favorites, volume history | Progression comparisons, personalized program generation, timed 5–60 minute mobility flows |
+| Workouts / mobility | Editable templates, drag/keyboard exercise ordering, sets/reps/load/RPE/rest, favorites, volume history | Progression comparisons, personalized program generation, timed 5–60 minute mobility flows |
 | Nutrition / hydration | Manual food/macronutrient logs, expanded nutrient view, water, editable targets | Barcode provider/camera scanning, food image parsing, custom micronutrient list, reviewed BMR/energy-expenditure estimation |
-| Body composition | Manual measurements, weight history | Native HealthKit/Health Connect bridge, RENPHO compatibility verification, goal overlays |
+| Body composition | Manual measurements, weight history, reviewed RENPHO CSV import | Automatic RENPHO sync, native HealthKit/Health Connect bridge, goal overlays |
 | Training studio | Journal/caption/media storage, text sharing | Clip trimming, stat overlays, file sharing and platform-authorized publishing |
 | Assistant | Limited command matching + optional browser dictation, draft review | Server-side LLM tool calling, speech transcription, per-action authorization, complete module coverage |
 
@@ -31,7 +31,9 @@ The final conversation describes 10 feature areas plus a voice orchestrator. Thi
 
 ## Known limits
 
-- No accounts or cross-device synchronization. The public Pages build stores records on each visitor’s browser. The optional Express server remains loopback-only.
+- Google sign-in and private Supabase cloud journals are live. Guest mode stores entries in the current browser. The optional Express server remains loopback-only. Free Supabase projects may pause after inactivity; no paid plan or artificial keepalive is enabled.
+- Food-photo AI is prepared but disabled pending provider onboarding, deployment and live verification. Photos alone do not populate calories.
+- RENPHO uses CSV export/import, not automatic Bluetooth or account sync.
 - Record removal is permanent after the second click unless a prior complete `.matcraft` backup is available. Settings includes complete backup download and transactional restore with media. JSON-only exports remain read-only reports.
 - Media detach removes record references, not the file; unused uploaded files remain on disk until a future cleanup workflow.
 - Browser timers use wall-clock deadlines while active; sleeping computers, suspended tabs and navigation away from the app can interrupt a sequence. The timer is not a competition officiating system.

@@ -1,10 +1,10 @@
 # Google sign-in and private journals
 
-Status: integration prepared; not live until the project, Google provider and repository variables below are configured. The app keeps its existing browser-only mode when both public configuration values are absent. Do not configure a production deployment before applying the access rules and enabling Google.
+Status (2026-11-12): Google login is published for external clients and enabled on the live Pages build. A cloud entry survived reload after successful Google sign-in. The app keeps its existing browser-only mode when both public configuration values are absent. Do not configure a production deployment before applying the access rules and enabling Google.
 
 ## Provision once
 
-Progress (2026-11-11): project `ovjjenrzslrrnhhxtxfd` resumed from inactivity. Private journal/media and nutrition quota migrations applied successfully; media bucket confirmed private. Google OAuth and deployment variables remain pending. Owner requires free plans only: no billing or upgrades.
+Progress (2026-11-11): project `ovjjenrzslrrnhhxtxfd` resumed from inactivity. Private journal/media and nutrition quota migrations applied successfully; media bucket confirmed private. Google OAuth is enabled, the app audience is In production, and deployment variables are configured. Owner requires free plans only: no billing or upgrades.
 
 1. Sign into Supabase and create a project named Matcraft. Choose the Free plan to start. The owner sets and retains the database password; do not commit it or paste it into chat. Free projects have a 1 GB file-storage allowance, limited bandwidth, and may pause after inactivity; review current pricing before real client rollout. This app caps cloud uploads at 50 MB per file.
 2. In the SQL editor, run `supabase/migrations/202610290001_private_journals.sql` once against the new project. It creates per-user records, a private media bucket and access policies. It never exposes a public media bucket. Do not apply against existing unrelated tables with the same names.
@@ -26,4 +26,4 @@ Progress (2026-11-11): project `ovjjenrzslrrnhhxtxfd` resumed from inactivity. P
 
 ## Verification
 
-`npm test` includes real PostgreSQL policy tests in PGlite: account A cannot read/update/delete account B’s entries or media, ownership cannot be forged, unauthenticated access is denied, and updates advance revisions. Storage service behavior and real Google OAuth still require the configured deployment checks above.
+`npm test` includes real PostgreSQL policy tests in PGlite: account A cannot read/update/delete account B’s entries or media, ownership cannot be forged, unauthenticated access is denied, and updates advance revisions. Google OAuth and record save/reload passed on the live deployment. Independent second-account/device and cloud media playback checks remain outstanding.

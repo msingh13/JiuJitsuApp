@@ -60,3 +60,44 @@ test("Pages storage saves media metadata and rejects unsupported uploads", async
     /supported/,
   );
 });
+
+test("personal program exercise order survives save and reload with exercise details intact", async () => {
+  const { moveExercise } = await import("../src/exercise-order.js");
+  const exercises = ["Squat", "Row", "Press"].map((name, i) => ({
+    name,
+    sets: 3,
+    reps: 8,
+    weight: 10 * (i + 1),
+    rpe: 6,
+    rest: 60,
+    _editKey: String(i),
+  }));
+  const saved = await browserRequest(
+    "/records/workouts",
+    post({
+      title: "My program",
+      date: "2026-11-11",
+      type: "Strength",
+      duration: 45,
+      status: "Template",
+      exercises,
+    }),
+  );
+  await browserRequest("/records/workouts/" + saved.id, {
+    method: "PUT",
+    body: JSON.stringify({
+      ...saved,
+      exercises: moveExercise(saved.exercises, 2, 0),
+    }),
+  });
+  const restored = (await browserRequest("/records")).workouts.find(
+    (r) => r.id === saved.id,
+  );
+  assert.deepEqual(
+    restored.exercises.map((e) => e.name),
+    ["Press", "Squat", "Row"],
+  );
+  assert.equal(restored.exercises[0].weight, 30);
+  assert.equal(Object.hasOwn(restored.exercises[0], "_editKey"), false);
+  assert.equal(moveExercise(exercises, 0, -1), exercises);
+});

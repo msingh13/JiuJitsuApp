@@ -1103,6 +1103,12 @@ textarea {
 .exercise-row label {
   font-size: 9px;
 }
+.exercise-order-controls { grid-column: 1/-1; display: flex; gap: 8px; align-items: center; font-size: 12px; }
+.exercise-order-controls span { margin-right: auto; }
+.exercise-order-controls button { min-width: 36px; min-height: 36px; }
+.exercise-grip { touch-action: none; cursor: grab; }
+.exercise-grip:active { cursor: grabbing; }
+.exercise-row.is-dragging { outline: 2px solid #3b82f6; border-radius: 8px; background: #eaf2ff; }
 .check-label {
   flex-direction: row;
   align-items: center;
@@ -1837,7 +1843,7 @@ footer span:last-child {
   .exercise-row {
     grid-template-columns: repeat(5, 1fr) 25px;
   }
-  .exercise-row label:first-child {
+  .exercise-row label:first-of-type {
     grid-column: 1/-1;
   }
   .stats.three .stat-value {

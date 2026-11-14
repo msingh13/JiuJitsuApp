@@ -28,7 +28,7 @@ Live address: https://msingh13.github.io/JiuJitsuApp/
 npm run build:pages
 ```
 
-This produces `dist-pages/` with `/JiuJitsuApp/` asset paths. GitHub Actions publishes the tested build directly from this repository to GitHub Pages. The browser edition uses IndexedDB for records and photo/video blobs, with the same validation rules as the local API. It never calls the Express server. Each browser/device has its own journal. Closing and reopening the browser and deploying app updates preserve records. The app requests persistent storage when supported; the browser can decline. Explicitly clearing site data, deleting a browser profile, or ending a private session can still remove everything. People sharing a browser profile share its journal. There are no accounts or cloud sync.
+This produces `dist-pages/` with `/JiuJitsuApp/` asset paths. GitHub Actions publishes the tested build directly from this repository to GitHub Pages. The browser edition uses IndexedDB for records and photo/video blobs, with the same validation rules as the local API. It never calls the Express server. Each browser/device has its own journal. Closing and reopening the browser and deploying app updates preserve records. The app requests persistent storage when supported; the browser can decline. Explicitly clearing site data, deleting a browser profile, or ending a private session can still remove everything. People sharing a browser profile share its journal. Google sign-in optionally stores journals and media in private Supabase cloud storage across devices. Guest entries stay separate until explicitly copied from Settings.
 
 Settings → Download complete backup saves a `.matcraft` file containing records and the actual photo/video files. Restore backup validates the entire archive and imports it atomically. Existing records and the current profile are preserved; missing entries are restored. Keep backup files private. The separate JSON export is human-readable but cannot restore media.
 
@@ -36,13 +36,13 @@ The portfolio links to this project’s Pages URL. `.github/workflows/pages.yml`
 
 ## Current release: personal edition
 
-- Mat journal: Gi/No-Gi sessions, class and rolling minutes, focus, notes, ratings, calendar and week/month/year totals. Each class supports a moves-practiced list and up to 30 named photos/videos (100 MB each), inline playback, original downloads and individual detachment. Complete backups include class media.
+- Mat journal: Gi/No-Gi sessions, class and rolling minutes, focus, notes, ratings, calendar and week/month/year totals. Each class supports a moves-practiced list and up to 30 named photos/videos (100 MB each locally, 50 MB in cloud), inline playback, original downloads and individual detachment. Complete backups include class media.
 - Technique library: 21 categorized starter techniques, search/filter, personal notes, mistakes, key details, difficulty, understanding, favorites, video links, media attachments.
 - Strategy: saved branching game plans and three educational decision scenarios.
 - Round timer: rounds, rest, pause/resume, audio alerts, red/blue scoreboard, advantages and penalties. Timer remains active when navigating between app sections; browser suspension can delay alerts.
-- Workouts: strength, cardio, kettlebell, mobility, yoga and Pilates templates; exercises, sets, reps, kilograms, RPE, rest, favorites, volume history and estimated 1RM for sets of 1–12 reps.
+- Workouts: strength, cardio, kettlebell, mobility, yoga and Pilates templates; exercises, sets, reps, kilograms, RPE, rest, favorites, drag/keyboard exercise reordering with saved program order, volume history and estimated 1RM for sets of 1–12 reps.
 - Nutrition: manual meals, calories, macros, fiber, saturated fat, sodium, daily targets, hydration and undo-last-water.
-- Body metrics: manual weight, body fat, muscle mass, visceral rating, chronological charts.
+- Body metrics: manual weight, body fat, muscle mass, visceral rating, chronological charts, and reviewed RENPHO CSV imports with unit conversion and duplicate detection. This is not automatic scale/account sync.
 - Competition: opponents, divisions, results, scoring, video links and notes.
 - Partners/places: private notes, saved academy locations and schedules, external Google Maps search.
 - Studio: journal captions, photo/video attachments, native text sharing or clipboard fallback.
@@ -53,7 +53,7 @@ Data is stored in `.data/matcraft.sqlite`; media lives in `.data/uploads`. Both 
 
 ### Scope and access
 
-This release binds to loopback and rejects remote Host headers and cross-origin web requests. It has **no multi-user authentication** and must not be exposed publicly or behind a public reverse proxy. The GitHub Pages edition works directly in phone and desktop browsers with separate data per browser. Cross-device synchronization and native mobile builds are future work. A local process with access to this computer can read the database. Do not deploy this edition as a public service.
+This release binds to loopback and rejects remote Host headers and cross-origin web requests. It has **no multi-user authentication** and must not be exposed publicly or behind a public reverse proxy. The GitHub Pages edition works directly in phone and desktop browsers with separate data per browser. The Pages build supports Google sign-in and private cloud journals; native mobile builds are future work. A local process with access to this computer can read the database. Do not deploy this edition as a public service.
 
 The starter catalog uses explicitly labeled YouTube searches, not an exhaustive or curated video index. No live academy curriculum is fetched. Belt promotions are instructor decisions; no promotion prediction is made. Nutrition targets are user-entered; there are no automatic calorie-burn or weight-cut prescriptions. Workout generators are editable templates rather than personalized AI coaching. Optional browser dictation may send audio to the browser vendor’s speech service. Google Fonts are fetched for typography, with local fallbacks.
 
@@ -81,6 +81,6 @@ GitHub Actions runs both on pushes and pull requests. Database tests use an in-m
 
 No external API keys are required for this edition. Never place provider secrets in browser code.
 
-## Google sign-in integration (pending activation)
+## Google sign-in integration
 
-Google OAuth and private cross-device records/media are implemented behind two public configuration values. See [cloud setup](docs/CLOUD-SETUP.md) for the required Supabase project, SQL access policies, Google provider and GitHub Actions variables. Without those values the existing browser edition remains active. Live Google authentication and two-device checks must be completed after provisioning; local PostgreSQL access-policy tests are included.
+Google OAuth is published for external clients and the live Pages build has its public Supabase configuration. A live Google login and cloud save/reload were verified on November 12, 2026. See [cloud setup](docs/CLOUD-SETUP.md) for the required Supabase project, SQL access policies, Google provider and GitHub Actions variables. Without those values the existing browser edition remains active. Local PostgreSQL access-policy tests cover account isolation. Independent second-device and second-account live checks remain to be completed. Food-photo AI remains disabled until free-provider onboarding, deployment and live verification are complete.

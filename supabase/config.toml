@@ -1,0 +1,4 @@
+[functions.estimate-nutrition]
+# The handler validates the caller with auth.getUser and uses owner-scoped RLS.
+# Legacy-secret verification cannot validate modern asymmetric auth tokens.
+verify_jwt = false
